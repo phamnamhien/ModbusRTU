@@ -40,62 +40,54 @@ uint32_t modbus_data_bits = 8;
 uint32_t modbus_parity = 0;
 uint32_t modbus_stop_bits = 1;
 
-/* Master-specific configuration variables */
-uint32_t modbus_timeout_ms = 1000;
-uint32_t modbus_poll_interval_ms = 100;
-uint32_t modbus_max_retries = 3;
+/* Slave-specific configuration variables */
+uint32_t modbus_slave_id = 1;
+uint32_t modbus_response_delay_ms = 0;
 
 /* Data arrays - only allocate what we actually use */
-uint16_t g_modbus_holding_registers[32];
-uint16_t g_modbus_input_registers[1];              /* Placeholder */
-uint8_t  g_modbus_coils[1];                        /* Placeholder */
-uint8_t  g_modbus_discrete_inputs[1];              /* Placeholder */
+uint16_t g_modbus_holding_registers[3];
+uint16_t g_modbus_input_registers[4];
+uint8_t  g_modbus_coils[1];
+uint8_t  g_modbus_discrete_inputs[1];
 
 /* Address to array index mapping */
-const modbus_register_map_t g_modbus_holding_register_map[32] = {
-    {    0,   0},                  /* S1_HR_0000 */
-    {    1,   1},                  /* S1_HR_0001 */
-    {    2,   2},                  /* S2_HR_0002 */
-    {    3,   3},                  /* S2_HR_0003 */
-    {    4,   4},                  /* S3_HR_0004 */
-    {    5,   5},                  /* S3_HR_0005 */
-    {    6,   6},                  /* S4_HR_0006 */
-    {    7,   7},                  /* S4_HR_0007 */
-    {    8,   8},                  /* S5_HR_0008 */
-    {    9,   9},                  /* S5_HR_0009 */
-    {   10,  10},                  /* S6_HR_0010 */
-    {   11,  11},                  /* S6_HR_0011 */
-    {   12,  12},                  /* S7_HR_0012 */
-    {   13,  13},                  /* S7_HR_0013 */
-    {   14,  14},                  /* S8_HR_0014 */
-    {   15,  15},                  /* S8_HR_0015 */
-    {   16,  16},                  /* S9_HR_0016 */
-    {   17,  17},                  /* S9_HR_0017 */
-    {   18,  18},                  /* S10_HR_0018 */
-    {   19,  19},                  /* S10_HR_0019 */
-    {   20,  20},                  /* S11_HR_0020 */
-    {   21,  21},                  /* S11_HR_0021 */
-    {   22,  22},                  /* S12_HR_0022 */
-    {   23,  23},                  /* S12_HR_0023 */
-    {   24,  24},                  /* S13_HR_0024 */
-    {   25,  25},                  /* S13_HR_0025 */
-    {   26,  26},                  /* S14_HR_0026 */
-    {   27,  27},                  /* S14_HR_0027 */
-    {   28,  28},                  /* S16_HR_0028 */
-    {   29,  29},                  /* S16_HR_0029 */
-    {   30,  30},                  /* S18_HR_0030 */
-    {   31,  31},                  /* S18_HR_0031 */
+const modbus_register_map_t g_modbus_holding_register_map[3] = {
+    {    0,   0},                  /* HR_0000 */
+    {    1,   1},                  /* HR_0001 */
+    {    2,   2},                  /* HR_0002 */
 };
 
-const modbus_register_map_t g_modbus_input_register_map[1] = {{0, 0}};
+const modbus_register_map_t g_modbus_input_register_map[4] = {
+    {    0,   0},                  /* IR_0000 */
+    {    3,   1},                  /* IR_0003 */
+    {    4,   2},                  /* IR_0004 */
+    {  100,   3},                  /* IR_0100 */
+};
 
-const modbus_register_map_t g_modbus_coil_map[1] = {{0, 0}};
+const modbus_register_map_t g_modbus_coil_map[7] = {
+    {    0,   0},                  /* COIL_0000 */
+    {    1,   1},                  /* COIL_0001 */
+    {    2,   2},                  /* COIL_0002 */
+    {    3,   3},                  /* COIL_0003 */
+    {    4,   4},                  /* COIL_0004 */
+    {    5,   5},                  /* COIL_0005 */
+    {    6,   6},                  /* COIL_0006 */
+};
 
-const modbus_register_map_t g_modbus_discrete_input_map[1] = {{0, 0}};
+const modbus_register_map_t g_modbus_discrete_input_map[3] = {
+    {    0,   0},                  /* DI_0000 */
+    {    1,   1},                  /* DI_0001 */
+    {    2,   2},                  /* DI_0002 */
+};
 
-/* Optimized register ranges (1 ranges) */
-const modbus_register_range_t g_modbus_register_ranges[1] = {
-    {    0,  32, 4}                      /* Holding Regs 0-31 */
+/* Optimized register ranges (6 ranges) */
+const modbus_register_range_t g_modbus_register_ranges[6] = {
+    {    0,   3, 4},                      /* Holding Regs 0-2 */
+    {    0,   1, 3},                      /* Input Regs 0 */
+    {    3,   2, 3},                      /* Input Regs 3-4 */
+    {  100,   1, 3},                      /* Input Regs 100 */
+    {    0,   3, 1},                      /* DI 0-2 */
+    {    0,   7, 0}                      /* Coils 0-6 */
 };
 
 /**
