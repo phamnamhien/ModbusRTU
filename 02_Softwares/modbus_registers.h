@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (c) 2025 Your Name
+ * Copyright (c) 2025 Pham Nam Hien
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -44,43 +44,136 @@ extern "C" {
  */
 #define MODBUS_USE_REGISTER_MAPPING                 (1)
 
-/* Configuration settings */
+/* Configuration settings - Variables (can be modified at runtime) */
 
-/* Common settings */
-#define MODBUS_SLAVE_ID                          (1)
-#define MODBUS_BAUDRATE                          (9600)
-#define MODBUS_PARITY                            (0)
-#define MODBUS_STOP_BITS                         (1)
+/* External variable declarations for configuration */
+extern uint32_t modbus_baudrate;
+extern uint32_t modbus_data_bits;
+extern uint32_t modbus_parity;
+extern uint32_t modbus_stop_bits;
 
 /* Device type */
-#define MODBUS_DEVICE_TYPE_SLAVE                    (1)
+#define MODBUS_DEVICE_TYPE_MASTER                   (1)
+/* Target slave IDs: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 */
 
-/* Slave-specific settings */
-#define MODBUS_RESPONSE_DELAY_MS                 (0)
+/* Master-specific configuration variables */
+extern uint32_t modbus_timeout_ms;
+extern uint32_t modbus_poll_interval_ms;
+extern uint32_t modbus_max_retries;
 
 /* Register counts (optimized memory) */
 #define MODBUS_COIL_COUNT                           (0)
 #define MODBUS_DISCRETE_INPUT_COUNT                 (0)
 #define MODBUS_INPUT_REGISTER_COUNT                 (0)
-#define MODBUS_HOLDING_REGISTER_COUNT               (2)
+#define MODBUS_HOLDING_REGISTER_COUNT               (32)
 
 /* Register internal address definitions */
 
 /* Holding Register internal addresses */
-#define HR_0000_ADDR                             (0    )  /* Internal addr 0 */
-#define HR_0001_ADDR                             (1    )  /* Internal addr 1 */
+#define S1_HR_0000_ADDR                          (0    )  /* Slave 1, Addr 0 */
+#define S1_HR_0001_ADDR                          (1    )  /* Slave 1, Addr 1 */
+#define S2_HR_0002_ADDR                          (2    )  /* Slave 2, Addr 2 */
+#define S2_HR_0003_ADDR                          (3    )  /* Slave 2, Addr 3 */
+#define S3_HR_0004_ADDR                          (4    )  /* Slave 3, Addr 4 */
+#define S3_HR_0005_ADDR                          (5    )  /* Slave 3, Addr 5 */
+#define S4_HR_0006_ADDR                          (6    )  /* Slave 4, Addr 6 */
+#define S4_HR_0007_ADDR                          (7    )  /* Slave 4, Addr 7 */
+#define S5_HR_0008_ADDR                          (8    )  /* Slave 5, Addr 8 */
+#define S5_HR_0009_ADDR                          (9    )  /* Slave 5, Addr 9 */
+#define S6_HR_0010_ADDR                          (10   )  /* Slave 6, Addr 10 */
+#define S6_HR_0011_ADDR                          (11   )  /* Slave 6, Addr 11 */
+#define S7_HR_0012_ADDR                          (12   )  /* Slave 7, Addr 12 */
+#define S7_HR_0013_ADDR                          (13   )  /* Slave 7, Addr 13 */
+#define S8_HR_0014_ADDR                          (14   )  /* Slave 8, Addr 14 */
+#define S8_HR_0015_ADDR                          (15   )  /* Slave 8, Addr 15 */
+#define S9_HR_0016_ADDR                          (16   )  /* Slave 9, Addr 16 */
+#define S9_HR_0017_ADDR                          (17   )  /* Slave 9, Addr 17 */
+#define S10_HR_0018_ADDR                         (18   )  /* Slave 10, Addr 18 */
+#define S10_HR_0019_ADDR                         (19   )  /* Slave 10, Addr 19 */
+#define S11_HR_0020_ADDR                         (20   )  /* Slave 11, Addr 20 */
+#define S11_HR_0021_ADDR                         (21   )  /* Slave 11, Addr 21 */
+#define S12_HR_0022_ADDR                         (22   )  /* Slave 12, Addr 22 */
+#define S12_HR_0023_ADDR                         (23   )  /* Slave 12, Addr 23 */
+#define S13_HR_0024_ADDR                         (24   )  /* Slave 13, Addr 24 */
+#define S13_HR_0025_ADDR                         (25   )  /* Slave 13, Addr 25 */
+#define S14_HR_0026_ADDR                         (26   )  /* Slave 14, Addr 26 */
+#define S14_HR_0027_ADDR                         (27   )  /* Slave 14, Addr 27 */
+#define S16_HR_0028_ADDR                         (28   )  /* Slave 16, Addr 28 */
+#define S16_HR_0029_ADDR                         (29   )  /* Slave 16, Addr 29 */
+#define S18_HR_0030_ADDR                         (30   )  /* Slave 18, Addr 30 */
+#define S18_HR_0031_ADDR                         (31   )  /* Slave 18, Addr 31 */
 
 /* Register mapping indices */
 /* Use these indices to access g_modbus_xxx_registers[] arrays */
-#define HR_0000_IDX                              (0)
-#define HR_0001_IDX                              (1)
+#define S1_HR_0000_IDX                           (0)
+#define S1_HR_0001_IDX                           (1)
+#define S2_HR_0002_IDX                           (2)
+#define S2_HR_0003_IDX                           (3)
+#define S3_HR_0004_IDX                           (4)
+#define S3_HR_0005_IDX                           (5)
+#define S4_HR_0006_IDX                           (6)
+#define S4_HR_0007_IDX                           (7)
+#define S5_HR_0008_IDX                           (8)
+#define S5_HR_0009_IDX                           (9)
+#define S6_HR_0010_IDX                           (10)
+#define S6_HR_0011_IDX                           (11)
+#define S7_HR_0012_IDX                           (12)
+#define S7_HR_0013_IDX                           (13)
+#define S8_HR_0014_IDX                           (14)
+#define S8_HR_0015_IDX                           (15)
+#define S9_HR_0016_IDX                           (16)
+#define S9_HR_0017_IDX                           (17)
+#define S10_HR_0018_IDX                          (18)
+#define S10_HR_0019_IDX                          (19)
+#define S11_HR_0020_IDX                          (20)
+#define S11_HR_0021_IDX                          (21)
+#define S12_HR_0022_IDX                          (22)
+#define S12_HR_0023_IDX                          (23)
+#define S13_HR_0024_IDX                          (24)
+#define S13_HR_0025_IDX                          (25)
+#define S14_HR_0026_IDX                          (26)
+#define S14_HR_0027_IDX                          (27)
+#define S16_HR_0028_IDX                          (28)
+#define S16_HR_0029_IDX                          (29)
+#define S18_HR_0030_IDX                          (30)
+#define S18_HR_0031_IDX                          (31)
 
 /* Direct access macros - use these for easy register access */
 /* Example: TEMPERATURE = 34; instead of g_modbus_holding_registers[TEMPERATURE_IDX] = 34; */
 
 /* Holding Register access macros */
-#define HR_0000                                  g_modbus_holding_registers[HR_0000_IDX]
-#define HR_0001                                  g_modbus_holding_registers[HR_0001_IDX]
+#define S1_HR_0000                               g_modbus_holding_registers[S1_HR_0000_IDX]
+#define S1_HR_0001                               g_modbus_holding_registers[S1_HR_0001_IDX]
+#define S2_HR_0002                               g_modbus_holding_registers[S2_HR_0002_IDX]
+#define S2_HR_0003                               g_modbus_holding_registers[S2_HR_0003_IDX]
+#define S3_HR_0004                               g_modbus_holding_registers[S3_HR_0004_IDX]
+#define S3_HR_0005                               g_modbus_holding_registers[S3_HR_0005_IDX]
+#define S4_HR_0006                               g_modbus_holding_registers[S4_HR_0006_IDX]
+#define S4_HR_0007                               g_modbus_holding_registers[S4_HR_0007_IDX]
+#define S5_HR_0008                               g_modbus_holding_registers[S5_HR_0008_IDX]
+#define S5_HR_0009                               g_modbus_holding_registers[S5_HR_0009_IDX]
+#define S6_HR_0010                               g_modbus_holding_registers[S6_HR_0010_IDX]
+#define S6_HR_0011                               g_modbus_holding_registers[S6_HR_0011_IDX]
+#define S7_HR_0012                               g_modbus_holding_registers[S7_HR_0012_IDX]
+#define S7_HR_0013                               g_modbus_holding_registers[S7_HR_0013_IDX]
+#define S8_HR_0014                               g_modbus_holding_registers[S8_HR_0014_IDX]
+#define S8_HR_0015                               g_modbus_holding_registers[S8_HR_0015_IDX]
+#define S9_HR_0016                               g_modbus_holding_registers[S9_HR_0016_IDX]
+#define S9_HR_0017                               g_modbus_holding_registers[S9_HR_0017_IDX]
+#define S10_HR_0018                              g_modbus_holding_registers[S10_HR_0018_IDX]
+#define S10_HR_0019                              g_modbus_holding_registers[S10_HR_0019_IDX]
+#define S11_HR_0020                              g_modbus_holding_registers[S11_HR_0020_IDX]
+#define S11_HR_0021                              g_modbus_holding_registers[S11_HR_0021_IDX]
+#define S12_HR_0022                              g_modbus_holding_registers[S12_HR_0022_IDX]
+#define S12_HR_0023                              g_modbus_holding_registers[S12_HR_0023_IDX]
+#define S13_HR_0024                              g_modbus_holding_registers[S13_HR_0024_IDX]
+#define S13_HR_0025                              g_modbus_holding_registers[S13_HR_0025_IDX]
+#define S14_HR_0026                              g_modbus_holding_registers[S14_HR_0026_IDX]
+#define S14_HR_0027                              g_modbus_holding_registers[S14_HR_0027_IDX]
+#define S16_HR_0028                              g_modbus_holding_registers[S16_HR_0028_IDX]
+#define S16_HR_0029                              g_modbus_holding_registers[S16_HR_0029_IDX]
+#define S18_HR_0030                              g_modbus_holding_registers[S18_HR_0030_IDX]
+#define S18_HR_0031                              g_modbus_holding_registers[S18_HR_0031_IDX]
 
 /* Register ranges configuration */
 #define MODBUS_REGISTER_RANGES_COUNT                (1)

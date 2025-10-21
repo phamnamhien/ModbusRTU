@@ -100,7 +100,7 @@ class ModbusCodeGenerator:
  */
 
 /*
- * Copyright (c) 2025 Your Name
+ * Copyright (c) 2025 Pham Nam Hien
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -140,28 +140,33 @@ extern "C" {
  */
 #define MODBUS_USE_REGISTER_MAPPING                 (1)
 
-/* Configuration settings */
+/* Configuration settings - Variables (can be modified at runtime) */
 '''
         
         settings = self.config.get('settings', {})
-        header += "\n/* Common settings */\n"
+        
+        # Generate extern declarations for variables instead of #defines
+        header += "\n/* External variable declarations for configuration */\n"
         for setting in settings.get('common', []):
-            header += f"#define {setting['var_name']:<40} ({setting['value']})\n"
+            var_name = setting['var_name'].lower()
+            header += f"extern uint32_t {var_name};\n"
         
         if self.config['is_master']:
             header += "\n/* Device type */\n"
             header += "#define MODBUS_DEVICE_TYPE_MASTER                   (1)\n"
             if self.config.get('target_slaves'):
                 header += f"/* Target slave IDs: {', '.join(map(str, self.config['target_slaves']))} */\n"
-            header += "\n/* Master-specific settings */\n"
+            header += "\n/* Master-specific configuration variables */\n"
             for setting in settings.get('master', []):
-                header += f"#define {setting['var_name']:<40} ({setting['value']})\n"
+                var_name = setting['var_name'].lower()
+                header += f"extern uint32_t {var_name};\n"
         else:
             header += "\n/* Device type */\n"
             header += "#define MODBUS_DEVICE_TYPE_SLAVE                    (1)\n"
-            header += "\n/* Slave-specific settings */\n"
+            header += "\n/* Slave-specific configuration variables */\n"
             for setting in settings.get('slave', []):
-                header += f"#define {setting['var_name']:<40} ({setting['value']})\n"
+                var_name = setting['var_name'].lower()
+                header += f"extern uint32_t {var_name};\n"
         
         header += f"\n/* Register counts (optimized memory) */\n"
         header += f"#define MODBUS_COIL_COUNT                           ({coil_count})\n"
@@ -179,11 +184,19 @@ extern "C" {
             header += f"\n/* {type_names[modbus_type]} internal addresses */\n"
             
             for reg in sorted(reg_by_type[modbus_type], key=lambda x: x['internal_address']):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name to avoid conflicts
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    # Remove any existing slave prefix if present
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]  # Remove "SX_" prefix
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
                     comment = f'/* Slave {reg["slave_id"]}, Addr {reg["internal_address"]} */'
                 else:
+                    # For slave mode: use original tag name
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                     comment = f'/* Internal addr {reg["internal_address"]} */'
+                
                 header += f"#define {tag_name}_ADDR{' ' * max(1, 35 - len(tag_name))} ({reg['internal_address']:<5})  {comment}\n"
         
         header += f"\n/* Register mapping indices */\n"
@@ -195,7 +208,17 @@ extern "C" {
             
             sorted_regs = sorted(reg_by_type[modbus_type], key=lambda x: x['internal_address'])
             for idx, reg in enumerate(sorted_regs):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name to avoid conflicts
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    # Remove any existing slave prefix if present
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]  # Remove "SX_" prefix
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    # For slave mode: use original tag name
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                
                 header += f"#define {tag_name}_IDX{' ' * max(1, 36 - len(tag_name))} ({idx})\n"
         
         header += "\n/* Direct access macros - use these for easy register access */\n"
@@ -205,21 +228,42 @@ extern "C" {
             header += "/* Holding Register access macros */\n"
             sorted_regs = sorted(reg_by_type[4], key=lambda x: x['internal_address'])
             for idx, reg in enumerate(sorted_regs):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 header += f"#define {tag_name:<40} g_modbus_holding_registers[{tag_name}_IDX]\n"
         
         if reg_by_type[3]:
             header += "\n/* Input Register access macros */\n"
             sorted_regs = sorted(reg_by_type[3], key=lambda x: x['internal_address'])
             for idx, reg in enumerate(sorted_regs):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 header += f"#define {tag_name:<40} g_modbus_input_registers[{tag_name}_IDX]\n"
         
         if reg_by_type[0]:
             header += "\n/* Coil access macros (bit access) */\n"
             sorted_regs = sorted(reg_by_type[0], key=lambda x: x['internal_address'])
             for idx, reg in enumerate(sorted_regs):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 byte_idx = idx // 8
                 bit_idx = idx % 8
                 header += f"#define {tag_name}_SET(){' ' * max(1, 32 - len(tag_name))} (g_modbus_coils[{byte_idx}] |= (1 << {bit_idx}))\n"
@@ -230,7 +274,14 @@ extern "C" {
             header += "\n/* Discrete Input access macros (bit access) */\n"
             sorted_regs = sorted(reg_by_type[1], key=lambda x: x['internal_address'])
             for idx, reg in enumerate(sorted_regs):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in define name
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 byte_idx = idx // 8
                 bit_idx = idx % 8
                 header += f"#define {tag_name}_SET(){' ' * max(1, 32 - len(tag_name))} (g_modbus_discrete_inputs[{byte_idx}] |= (1 << {bit_idx}))\n"
@@ -299,7 +350,7 @@ void        modbus_registers_init(void);
  */
 
 /*
- * Copyright (c) 2025 Your Name
+ * Copyright (c) 2025 Pham Nam Hien
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -327,8 +378,32 @@ void        modbus_registers_init(void);
  */
 #include "modbus_registers.h"
 
-/* Data arrays - only allocate what we actually use */
+/* Configuration variables - can be modified at runtime */
 '''
+        
+        settings = self.config.get('settings', {})
+        
+        # Generate variable definitions instead of #defines
+        source += "\n/* Common configuration variables */\n"
+        for setting in settings.get('common', []):
+            var_name = setting['var_name'].lower()
+            value = setting['value']
+            source += f"uint32_t {var_name} = {value};\n"
+        
+        if self.config['is_master']:
+            source += "\n/* Master-specific configuration variables */\n"
+            for setting in settings.get('master', []):
+                var_name = setting['var_name'].lower()
+                value = setting['value']
+                source += f"uint32_t {var_name} = {value};\n"
+        else:
+            source += "\n/* Slave-specific configuration variables */\n"
+            for setting in settings.get('slave', []):
+                var_name = setting['var_name'].lower()
+                value = setting['value']
+                source += f"uint32_t {var_name} = {value};\n"
+        
+        source += "\n/* Data arrays - only allocate what we actually use */\n"
         
         hr_count = len(reg_by_type[4])
         ir_count = len(reg_by_type[3])
@@ -362,7 +437,14 @@ void        modbus_registers_init(void);
         if hr_count > 0:
             source += f"const modbus_register_map_t g_modbus_holding_register_map[{hr_count}] = {{\n"
             for idx, reg in enumerate(reg_by_type[4]):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in comment
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 source += f"    {{{reg['internal_address']:5}, {idx:3}}},                  /* {tag_name} */\n"
             source += "};\n\n"
         else:
@@ -371,7 +453,14 @@ void        modbus_registers_init(void);
         if ir_count > 0:
             source += f"const modbus_register_map_t g_modbus_input_register_map[{ir_count}] = {{\n"
             for idx, reg in enumerate(reg_by_type[3]):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in comment
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 source += f"    {{{reg['internal_address']:5}, {idx:3}}},                  /* {tag_name} */\n"
             source += "};\n\n"
         else:
@@ -380,7 +469,14 @@ void        modbus_registers_init(void);
         if coil_count > 0:
             source += f"const modbus_register_map_t g_modbus_coil_map[{coil_count}] = {{\n"
             for idx, reg in enumerate(reg_by_type[0]):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in comment
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 source += f"    {{{reg['internal_address']:5}, {idx:3}}},                  /* {tag_name} */\n"
             source += "};\n\n"
         else:
@@ -389,7 +485,14 @@ void        modbus_registers_init(void);
         if di_count > 0:
             source += f"const modbus_register_map_t g_modbus_discrete_input_map[{di_count}] = {{\n"
             for idx, reg in enumerate(reg_by_type[1]):
-                tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                if self.config['is_master'] and 'slave_id' in reg:
+                    # For master mode: include slave ID in comment
+                    base_tag = reg.get('tag_name', f'REG_{reg["internal_address"]}')
+                    if base_tag.startswith(('S1_', 'S2_', 'S3_', 'S4_', 'S5_', 'S6_', 'S7_', 'S8_', 'S9_')):
+                        base_tag = base_tag[3:]
+                    tag_name = f'S{reg["slave_id"]}_{base_tag}'
+                else:
+                    tag_name = reg.get('tag_name', f'REG_{reg["internal_address"]}')
                 source += f"    {{{reg['internal_address']:5}, {idx:3}}},                  /* {tag_name} */\n"
             source += "};\n\n"
         else:
@@ -583,8 +686,8 @@ modbus_registers_init(void) {
         """Get default settings"""
         return {
             'common': [
-                {'var_name': 'MODBUS_SLAVE_ID', 'value': '1', 'description': 'Modbus slave address (1-247)'},
                 {'var_name': 'MODBUS_BAUDRATE', 'value': '9600', 'description': 'UART baudrate'},
+                {'var_name': 'MODBUS_DATA_BITS', 'value': '8', 'description': 'Data bits: 7 or 8'},
                 {'var_name': 'MODBUS_PARITY', 'value': '0', 'description': 'Parity: 0=None, 1=Even, 2=Odd'},
                 {'var_name': 'MODBUS_STOP_BITS', 'value': '1', 'description': 'Stop bits: 1 or 2'},
             ],
@@ -594,6 +697,8 @@ modbus_registers_init(void) {
                 {'var_name': 'MODBUS_MAX_RETRIES', 'value': '3', 'description': 'Maximum retry attempts'},
             ],
             'slave': [
+                {'var_name': 'MODBUS_SLAVE_ID', 'value': '1', 'description': 'Modbus slave address (1-247)'},
                 {'var_name': 'MODBUS_RESPONSE_DELAY_MS', 'value': '0', 'description': 'Response delay (ms)'},
             ]
         }
+    

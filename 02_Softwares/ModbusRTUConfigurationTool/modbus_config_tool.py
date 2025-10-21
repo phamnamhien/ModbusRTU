@@ -43,8 +43,8 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
     def get_default_settings(self):
         return {
             'common': [
-                {'var_name': 'MODBUS_SLAVE_ID', 'value': '1', 'description': 'Modbus slave address (1-247)'},
                 {'var_name': 'MODBUS_BAUDRATE', 'value': '9600', 'description': 'UART baudrate'},
+                {'var_name': 'MODBUS_DATA_BITS', 'value': '8', 'description': 'Data bits: 7 or 8'},
                 {'var_name': 'MODBUS_PARITY', 'value': '0', 'description': 'Parity: 0=None, 1=Even, 2=Odd'},
                 {'var_name': 'MODBUS_STOP_BITS', 'value': '1', 'description': 'Stop bits: 1 or 2'},
             ],
@@ -54,6 +54,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
                 {'var_name': 'MODBUS_MAX_RETRIES', 'value': '3', 'description': 'Maximum retry attempts'},
             ],
             'slave': [
+                {'var_name': 'MODBUS_SLAVE_ID', 'value': '1', 'description': 'Modbus slave address (1-247)'},
                 {'var_name': 'MODBUS_RESPONSE_DELAY_MS', 'value': '0', 'description': 'Response delay (ms)'},
             ]
         }
@@ -78,8 +79,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
         self.add_reg_btn.clicked.connect(self.add_register)
         self.quick_add_5_btn.clicked.connect(lambda: self.quick_add_consecutive_registers(5))
         self.quick_add_10_btn.clicked.connect(lambda: self.quick_add_consecutive_registers(10))
-        
-        self.optimize_btn.clicked.connect(self.optimize_ranges)
+        self.remove_all_btn.clicked.connect(self.remove_all_registers)
     
     def validate_tag_name(self, text):
         if text:
@@ -113,7 +113,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.slave_id_widget.hide()
             self.target_slaves_widget.show()
         else:
-            self.slave_id_widget.show()
+            self.slave_id_widget.hide()  # Remove slave_id_widget completely since it's now in settings
             self.target_slaves_widget.hide()
     
     def update_register_management_state(self):
@@ -133,6 +133,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.reg_tag_name.setEnabled(enable)
             self.quick_add_5_btn.setEnabled(enable)
             self.quick_add_10_btn.setEnabled(enable)
+            self.remove_all_btn.setEnabled(enable)
         else:
             self.register_status_label.setText('Slave Mode: Managing local registers')
             self.register_status_label.setStyleSheet("font-weight: bold; color: green; padding: 5px;")
@@ -142,6 +143,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.reg_tag_name.setEnabled(True)
             self.quick_add_5_btn.setEnabled(True)
             self.quick_add_10_btn.setEnabled(True)
+            self.remove_all_btn.setEnabled(True)
         
         self.update_register_table()
         self.optimize_ranges()
@@ -326,6 +328,23 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.optimize_ranges()
             self.statusbar.showMessage(f'Removed register {removed_reg.get("tag_name", "N/A")}')
     
+    def remove_all_registers(self):
+        current_registers = self.get_current_register_list()
+        if not current_registers:
+            QMessageBox.information(self, 'Info', 'No registers to remove!')
+            return
+        
+        reply = QMessageBox.question(self, 'Confirm', 
+                                   f'Are you sure you want to remove all {len(current_registers)} registers?',
+                                   QMessageBox.Yes | QMessageBox.No, 
+                                   QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            current_registers.clear()
+            self.update_register_table()
+            self.optimize_ranges()
+            self.statusbar.showMessage('Removed all registers')
+    
     def quick_add_consecutive_registers(self, count):
         start_addr = self.reg_address.value()
         reg_type = self.reg_type.currentIndex()
@@ -466,7 +485,6 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
     
     def update_ui_from_config(self):
         self.device_type.setCurrentText('Master' if self.config['is_master'] else 'Slave')
-        self.slave_id.setValue(self.config['slave_id'])
         
         self.target_slaves_list.clear()
         if 'target_slaves' in self.config:
@@ -482,7 +500,6 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
     
     def update_config_from_ui(self):
         self.config['is_master'] = self.device_type.currentText() == 'Master'
-        self.config['slave_id'] = self.slave_id.value()
         
         self.config['target_slaves'] = []
         for i in range(self.target_slaves_list.count()):
@@ -560,6 +577,7 @@ class SettingsDialog(QDialog):
         tabs = QTabWidget()
         layout.addWidget(tabs)
         
+        # Common settings tab
         common_tab = QWidget()
         common_layout = QVBoxLayout(common_tab)
         
@@ -572,6 +590,7 @@ class SettingsDialog(QDialog):
         
         tabs.addTab(common_tab, "Common")
         
+        # Master settings tab
         master_tab = QWidget()
         master_layout = QVBoxLayout(master_tab)
         
@@ -584,6 +603,7 @@ class SettingsDialog(QDialog):
         
         tabs.addTab(master_tab, "Master")
         
+        # Slave settings tab
         slave_tab = QWidget()
         slave_layout = QVBoxLayout(slave_tab)
         
@@ -625,34 +645,129 @@ class SettingsDialog(QDialog):
         
         for i, setting in enumerate(settings):
             table.setItem(i, 0, QTableWidgetItem(setting['var_name']))
-            table.setItem(i, 1, QTableWidgetItem(setting['value']))
+            
+            # Create appropriate widget based on variable name
+            value_widget = self.create_value_widget(setting['var_name'], setting['value'])
+            if value_widget:
+                table.setCellWidget(i, 1, value_widget)
+            else:
+                table.setItem(i, 1, QTableWidgetItem(setting['value']))
+            
             table.setItem(i, 2, QTableWidgetItem(setting['description']))
         
         return table
     
+    def create_value_widget(self, var_name, current_value):
+        """Create appropriate widget for each setting"""
+        if 'BAUDRATE' in var_name:
+            combo = QComboBox()
+            baudrates = ['1200', '2400', '4800', '9600', '19200', '38400', '57600', '115200']
+            combo.addItems(baudrates)
+            combo.setCurrentText(current_value)
+            return combo
+            
+        elif 'DATA_BITS' in var_name:
+            combo = QComboBox()
+            combo.addItems(['7', '8'])
+            combo.setCurrentText(current_value)
+            return combo
+            
+        elif 'PARITY' in var_name:
+            combo = QComboBox()
+            combo.addItems(['0', '1', '2'])  # 0=None, 1=Even, 2=Odd
+            combo.setCurrentText(current_value)
+            return combo
+            
+        elif 'STOP_BITS' in var_name:
+            combo = QComboBox()
+            combo.addItems(['1', '2'])
+            combo.setCurrentText(current_value)
+            return combo
+            
+        elif 'SLAVE_ID' in var_name:
+            spinbox = QSpinBox()
+            spinbox.setRange(1, 247)
+            spinbox.setValue(int(current_value))
+            return spinbox
+            
+        elif var_name in ['MODBUS_TIMEOUT_MS', 'MODBUS_POLL_INTERVAL_MS', 'MODBUS_RESPONSE_DELAY_MS']:
+            spinbox = QSpinBox()
+            spinbox.setRange(0, 60000)  # 0 to 60 seconds
+            spinbox.setValue(int(current_value))
+            spinbox.setSuffix(' ms')
+            return spinbox
+            
+        elif 'RETRIES' in var_name:
+            spinbox = QSpinBox()
+            spinbox.setRange(1, 10)
+            spinbox.setValue(int(current_value))
+            return spinbox
+        
+        # Return None for text input (fallback)
+        return None
+    
     def get_settings(self):
         self.settings['common'] = []
         for row in range(self.common_table.rowCount()):
+            var_name = self.common_table.item(row, 0).text()
+            
+            # Get value from widget or item
+            widget = self.common_table.cellWidget(row, 1)
+            if isinstance(widget, QComboBox):
+                value = widget.currentText()
+            elif isinstance(widget, QSpinBox):
+                value = str(widget.value())
+            else:
+                value = self.common_table.item(row, 1).text()
+            
+            description = self.common_table.item(row, 2).text()
+            
             self.settings['common'].append({
-                'var_name': self.common_table.item(row, 0).text(),
-                'value': self.common_table.item(row, 1).text(),
-                'description': self.common_table.item(row, 2).text()
+                'var_name': var_name,
+                'value': value,
+                'description': description
             })
         
         self.settings['master'] = []
         for row in range(self.master_table.rowCount()):
+            var_name = self.master_table.item(row, 0).text()
+            
+            # Get value from widget or item
+            widget = self.master_table.cellWidget(row, 1)
+            if isinstance(widget, QComboBox):
+                value = widget.currentText()
+            elif isinstance(widget, QSpinBox):
+                value = str(widget.value())
+            else:
+                value = self.master_table.item(row, 1).text()
+            
+            description = self.master_table.item(row, 2).text()
+            
             self.settings['master'].append({
-                'var_name': self.master_table.item(row, 0).text(),
-                'value': self.master_table.item(row, 1).text(),
-                'description': self.master_table.item(row, 2).text()
+                'var_name': var_name,
+                'value': value,
+                'description': description
             })
         
         self.settings['slave'] = []
         for row in range(self.slave_table.rowCount()):
+            var_name = self.slave_table.item(row, 0).text()
+            
+            # Get value from widget or item
+            widget = self.slave_table.cellWidget(row, 1)
+            if isinstance(widget, QComboBox):
+                value = widget.currentText()
+            elif isinstance(widget, QSpinBox):
+                value = str(widget.value())
+            else:
+                value = self.slave_table.item(row, 1).text()
+            
+            description = self.slave_table.item(row, 2).text()
+            
             self.settings['slave'].append({
-                'var_name': self.slave_table.item(row, 0).text(),
-                'value': self.slave_table.item(row, 1).text(),
-                'description': self.slave_table.item(row, 2).text()
+                'var_name': var_name,
+                'value': value,
+                'description': description
             })
         
         return self.settings
@@ -663,3 +778,4 @@ if __name__ == '__main__':
     window = ModbusConfigTool()
     window.show()
     sys.exit(app.exec_())
+    

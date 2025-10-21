@@ -30,16 +30,30 @@ class Ui_MainWindow(object):
         # Config Group
         self.config_group = QtWidgets.QGroupBox(self.left_container)
         self.config_group.setObjectName("config_group")
-        self.config_layout = QtWidgets.QFormLayout(self.config_group)
+        self.config_layout = QtWidgets.QVBoxLayout(self.config_group)  # Changed to VBoxLayout for better control
         self.config_layout.setObjectName("config_layout")
         
+        # Settings Button (moved to top, above device type)
+        self.settings_btn = QtWidgets.QPushButton(self.config_group)
+        self.settings_btn.setText("⚙ Configuration Settings")
+        self.settings_btn.setObjectName("settings_btn")
+        self.config_layout.addWidget(self.settings_btn)
+        
+        # Device Type row
+        device_type_layout = QtWidgets.QHBoxLayout()
         self.device_type_label = QtWidgets.QLabel(self.config_group)
         self.device_type_label.setText("Device Type:")
         self.device_type = QtWidgets.QComboBox(self.config_group)
         self.device_type.addItem("Slave")
         self.device_type.addItem("Master")
         self.device_type.setObjectName("device_type")
-        self.config_layout.addRow(self.device_type_label, self.device_type)
+        
+        device_type_layout.addWidget(self.device_type_label)
+        device_type_layout.addWidget(self.device_type)
+        device_type_layout.addStretch()  # Push everything to left
+        self.config_layout.addLayout(device_type_layout)
+        
+        # Remove the duplicate Settings Button section
         
         # Slave/Master Config Container
         self.slave_config_container = QtWidgets.QWidget(self.config_group)
@@ -47,7 +61,7 @@ class Ui_MainWindow(object):
         self.slave_config_layout = QtWidgets.QVBoxLayout(self.slave_config_container)
         self.slave_config_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Slave ID Widget
+        # Slave ID Widget (now hidden, since it's moved to settings)
         self.slave_id_widget = QtWidgets.QWidget()
         self.slave_id_widget.setObjectName("slave_id_widget")
         self.slave_id_layout = QtWidgets.QHBoxLayout(self.slave_id_widget)
@@ -64,16 +78,19 @@ class Ui_MainWindow(object):
         self.slave_id_layout.addWidget(self.slave_id)
         self.slave_id_layout.addStretch()
         
-        # Target Slaves Widget
+        # Target Slaves Widget with fixed spacing
         self.target_slaves_widget = QtWidgets.QWidget()
         self.target_slaves_widget.setObjectName("target_slaves_widget")
         self.target_layout = QtWidgets.QVBoxLayout(self.target_slaves_widget)
         self.target_layout.setContentsMargins(0, 0, 0, 0)
+        self.target_layout.setSpacing(5)  # Fixed spacing between elements
         
+        # Target label - no stretch
         self.target_label = QtWidgets.QLabel(self.target_slaves_widget)
         self.target_label.setText("Target Slave IDs:")
         self.target_layout.addWidget(self.target_label)
         
+        # Input controls - no stretch  
         self.target_input_layout = QtWidgets.QHBoxLayout()
         self.target_slave_input = QtWidgets.QSpinBox(self.target_slaves_widget)
         self.target_slave_input.setRange(1, 247)
@@ -93,27 +110,18 @@ class Ui_MainWindow(object):
         self.target_input_layout.addStretch()
         self.target_layout.addLayout(self.target_input_layout)
         
+        # List widget - this should stretch
         self.target_slaves_list = QtWidgets.QListWidget(self.target_slaves_widget)
-        self.target_slaves_list.setMaximumHeight(80)
+        self.target_slaves_list.setMinimumHeight(60)  # Set minimum instead of maximum
         self.target_slaves_list.setObjectName("target_slaves_list")
-        self.target_layout.addWidget(self.target_slaves_list)
+        self.target_layout.addWidget(self.target_slaves_list, 1)  # Add stretch factor = 1
         
         self.slave_config_layout.addWidget(self.slave_id_widget)
-        self.slave_config_layout.addWidget(self.target_slaves_widget)
-        self.config_layout.addRow(self.slave_config_container)
+        self.slave_config_layout.addWidget(self.target_slaves_widget, 1)  # Add stretch factor = 1
+        self.config_layout.addWidget(self.slave_config_container, 1)  # Add stretch factor = 1
         
-        # Settings Button
-        self.settings_btn = QtWidgets.QPushButton(self.config_group)
-        self.settings_btn.setText("⚙ Configuration Settings")
-        self.settings_btn.setObjectName("settings_btn")
-        self.config_layout.addRow(self.settings_btn)
-        
-        # Note Label
-        self.note_label = QtWidgets.QLabel(self.config_group)
-        self.note_label.setText("Note: Additional UART/Modbus settings can be configured via Settings button")
-        self.note_label.setWordWrap(True)
-        self.note_label.setStyleSheet("color: gray; font-style: italic; font-size: 10px;")
-        self.config_layout.addRow(self.note_label)
+        # Set fixed size policy for config group to prevent stretching
+        self.config_group.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         
         self.left_container_layout.addWidget(self.config_group)
         
@@ -122,6 +130,9 @@ class Ui_MainWindow(object):
         self.reg_group.setObjectName("reg_group")
         self.reg_layout = QtWidgets.QVBoxLayout(self.reg_group)
         self.reg_layout.setObjectName("reg_layout")
+        
+        # Set expanding size policy for register group to allow stretching
+        self.reg_group.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         
         self.register_status_label = QtWidgets.QLabel(self.reg_group)
         self.register_status_label.setText("Slave Mode: Managing local registers")
@@ -181,7 +192,7 @@ class Ui_MainWindow(object):
         
         self.reg_layout.addLayout(self.add_form_layout)
         
-        # Quick Add Buttons
+        # Quick Add Buttons with Remove All
         self.quick_add_layout = QtWidgets.QHBoxLayout()
         self.quick_add_5_btn = QtWidgets.QPushButton(self.reg_group)
         self.quick_add_5_btn.setText("+5 Registers")
@@ -192,28 +203,50 @@ class Ui_MainWindow(object):
         self.quick_add_10_btn.setText("+10 Registers")
         self.quick_add_10_btn.setObjectName("quick_add_10_btn")
         self.quick_add_layout.addWidget(self.quick_add_10_btn)
+        
         self.quick_add_layout.addStretch()
+        
+        # Remove All button aligned to right (same style as other buttons)
+        self.remove_all_btn = QtWidgets.QPushButton(self.reg_group)
+        self.remove_all_btn.setText("Remove All")
+        self.remove_all_btn.setObjectName("remove_all_btn")
+        self.quick_add_layout.addWidget(self.remove_all_btn)
+        
         self.reg_layout.addLayout(self.quick_add_layout)
         
-        # Register Table
+        # Register Table with resizable columns
         self.register_table = QtWidgets.QTableWidget(self.reg_group)
         self.register_table.setColumnCount(5)
         self.register_table.setHorizontalHeaderLabels(['Tag Name', 'Internal', 'Mapped', 'Type', 'Actions'])
         self.register_table.setObjectName("register_table")
         
         header = self.register_table.horizontalHeader()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Interactive)
-        header.setSectionResizeMode(3, QtWidgets.QHeaderView.Interactive)
-        header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-        header.setMinimumSectionSize(60)
-        self.register_table.setColumnWidth(1, 80)
-        self.register_table.setColumnWidth(2, 80)
-        self.register_table.setColumnWidth(3, 120)
+        # Configure columns: all stretch but with minimum table width constraint
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)     # Tag Name
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)     # Internal
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)     # Mapped
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)     # Type
+        header.setSectionResizeMode(4, QtWidgets.QHeaderView.Stretch)     # Actions
+        
+        # Enable stretch for last section to fill table width completely
+        header.setStretchLastSection(True)
+        
+        # Set proportional widths
+        header.resizeSection(0, 200)  # Tag Name - wider
+        header.resizeSection(1, 100)  # Internal
+        header.resizeSection(2, 100)  # Mapped
+        header.resizeSection(3, 150)  # Type
+        header.resizeSection(4, 100)  # Actions
+        
+        # Set minimum section sizes
+        header.setMinimumSectionSize(80)
+        
+        # Set minimum width for entire table to prevent columns from disappearing
+        # Sum of minimum widths: 120 + 80 + 80 + 120 + 90 = 490px + margins
+        self.register_table.setMinimumWidth(520)
         
         self.reg_layout.addWidget(self.register_table)
-        self.left_container_layout.addWidget(self.reg_group)
+        self.left_container_layout.addWidget(self.reg_group, 1)  # Add stretch factor = 1 to register group
         self.main_splitter.addWidget(self.left_container)
         
         # RIGHT PANEL
@@ -222,26 +255,34 @@ class Ui_MainWindow(object):
         self.ranges_layout = QtWidgets.QVBoxLayout(self.ranges_group)
         self.ranges_layout.setObjectName("ranges_layout")
         
-        self.optimize_btn = QtWidgets.QPushButton(self.ranges_group)
-        self.optimize_btn.setText("Manual Optimize Ranges")
-        self.optimize_btn.setObjectName("optimize_btn")
-        self.ranges_layout.addWidget(self.optimize_btn)
-        
-        # Ranges Table
+        # Ranges Table with resizable columns
         self.ranges_table = QtWidgets.QTableWidget(self.ranges_group)
         self.ranges_table.setColumnCount(4)
         self.ranges_table.setHorizontalHeaderLabels(['Start', 'Count', 'Type', 'Efficiency'])
         self.ranges_table.setObjectName("ranges_table")
         
         ranges_header = self.ranges_table.horizontalHeader()
-        ranges_header.setSectionResizeMode(0, QtWidgets.QHeaderView.Interactive)
-        ranges_header.setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
-        ranges_header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        ranges_header.setSectionResizeMode(3, QtWidgets.QHeaderView.Interactive)
-        ranges_header.setMinimumSectionSize(50)
-        self.ranges_table.setColumnWidth(0, 80)
-        self.ranges_table.setColumnWidth(1, 60)
-        self.ranges_table.setColumnWidth(3, 120)
+        # Configure columns: all stretch but with minimum table width constraint
+        ranges_header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)  # Start
+        ranges_header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)  # Count
+        ranges_header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Type
+        ranges_header.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)  # Efficiency
+        
+        # Enable stretch for last section to fill table width completely
+        ranges_header.setStretchLastSection(True)
+        
+        # Set proportional widths
+        ranges_header.resizeSection(0, 80)   # Start
+        ranges_header.resizeSection(1, 80)   # Count
+        ranges_header.resizeSection(2, 160)  # Type - wider
+        ranges_header.resizeSection(3, 120)  # Efficiency
+        
+        # Set minimum section sizes
+        ranges_header.setMinimumSectionSize(70)
+        
+        # Set minimum width for entire table to prevent columns from disappearing
+        # Sum of minimum widths: 70 + 70 + 130 + 100 = 370px + margins
+        self.ranges_table.setMinimumWidth(400)
         
         self.ranges_layout.addWidget(self.ranges_table)
         
@@ -314,5 +355,4 @@ class Ui_MainWindow(object):
         self.action_save.setText(_translate("MainWindow", "Save Config"))
         self.action_export.setText(_translate("MainWindow", "Export Library (.c/.h)"))
         self.action_import.setText(_translate("MainWindow", "Import Library (.h)"))
-
         
