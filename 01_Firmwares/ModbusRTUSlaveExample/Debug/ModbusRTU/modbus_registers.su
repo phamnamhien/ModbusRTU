@@ -1,0 +1,3 @@
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_registers.c:50:1:modbus_is_register_valid	40	static
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_registers.c:100:1:modbus_get_register_ranges	16	static
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_registers.c:112:1:modbus_registers_init	4	static

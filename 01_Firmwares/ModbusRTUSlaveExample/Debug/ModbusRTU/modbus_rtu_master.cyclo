@@ -1,0 +1,9 @@
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:12:1:master_send_request	15
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:99:1:modbus_rtu_master_read_coils	8
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:122:1:modbus_rtu_master_read_discrete_inputs	8
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:145:1:modbus_rtu_master_read_holding_registers	8
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:170:1:modbus_rtu_master_read_input_registers	8
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:195:1:modbus_rtu_master_write_single_coil	6
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:220:1:modbus_rtu_master_write_single_register	5
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:243:1:modbus_rtu_master_write_multiple_coils	9
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_rtu_master.c:272:1:modbus_rtu_master_write_multiple_registers	9

@@ -1,0 +1,13 @@
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:25:1:modbus_port_uart_init	7
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:64:1:modbus_port_send	1
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:73:1:modbus_port_get_time_ms	1
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:81:1:modbus_port_get_time_us	1
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:94:1:modbus_port_delay_us	2
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:105:1:modbus_port_set_interrupts	2
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:118:1:modbus_port_timer_init	4
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:159:1:modbus_port_timer_enable	2
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:172:7:modbus_port_get_timer_handle	1
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:179:6:modbus_port_rs485_tx_enable	2
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:190:6:modbus_port_rs485_rx_enable	2
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:201:9:modbus_port_get_rx_byte	1
+D:/Documents/WORKSPACE/ModbusRTU/01_Firmwares/ModbusRTU/modbus_port.c:208:6:modbus_port_uart_receive_next	1
