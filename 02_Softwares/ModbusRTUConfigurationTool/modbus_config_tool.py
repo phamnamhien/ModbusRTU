@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-modbus_config_tool.py - Main Logic
-Run this file to start the application
+modbus_config_tool.py - Enhanced Main Logic
+Run this file to start the enhanced application
 """
 
 import sys
@@ -38,7 +38,8 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
         self.update_slave_config_display()
         self.update_mapped_address()
         self.update_register_management_state()
-        self.statusbar.showMessage('Ready - Modbus RTU Configuration Tool')
+        self.update_operation_mode_visibility()
+        self.statusbar.showMessage('Ready - Enhanced Modbus RTU Configuration Tool v2.0')
         
     def get_default_settings(self):
         return {
@@ -50,7 +51,8 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             ],
             'master': [
                 {'var_name': 'MODBUS_TIMEOUT_MS', 'value': '1000', 'description': 'Response timeout (ms)'},
-                {'var_name': 'MODBUS_POLL_INTERVAL_MS', 'value': '100', 'description': 'Polling interval (ms)'},
+                {'var_name': 'MODBUS_FRAME_INTERVAL_MS', 'value': '10', 'description': 'Time between frames in one cycle (ms)'},
+                {'var_name': 'MODBUS_CYCLE_INTERVAL_MS', 'value': '100', 'description': 'Time between complete cycles (ms)'},
                 {'var_name': 'MODBUS_MAX_RETRIES', 'value': '3', 'description': 'Maximum retry attempts'},
             ],
             'slave': [
@@ -76,6 +78,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
         self.reg_tag_name.textChanged.connect(self.validate_tag_name)
         self.reg_address.valueChanged.connect(self.on_address_changed)
         self.reg_type.currentIndexChanged.connect(self.on_type_changed)
+        self.reg_operation.currentTextChanged.connect(self.on_operation_changed)  # NEW
         self.add_reg_btn.clicked.connect(self.add_register)
         self.quick_add_5_btn.clicked.connect(lambda: self.quick_add_consecutive_registers(5))
         self.quick_add_10_btn.clicked.connect(lambda: self.quick_add_consecutive_registers(10))
@@ -107,13 +110,35 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
         self.current_selected_slave = None
         self.update_slave_config_display()
         self.update_register_management_state()
+        self.update_operation_mode_visibility()
+    
+    def update_operation_mode_visibility(self):
+        """Show/hide Operation and Mode fields based on device type"""
+        is_master = self.config['is_master']
+        
+        # Show operation and mode controls only for Master
+        self.operation_label.setVisible(is_master)
+        self.reg_operation.setVisible(is_master)
+        self.mode_label.setVisible(is_master)
+        self.reg_mode.setVisible(is_master)
+        
+        # Enable/disable mode based on operation selection
+        if is_master:
+            self.on_operation_changed()
+    
+    def on_operation_changed(self):
+        """Enable/disable mode combo based on operation selection"""
+        is_write = self.reg_operation.currentText() == 'Write'
+        self.reg_mode.setEnabled(is_write)
+        if not is_write:
+            self.reg_mode.setCurrentIndex(0)  # Reset to One-time
     
     def update_slave_config_display(self):
         if self.config['is_master']:
             self.slave_id_widget.hide()
             self.target_slaves_widget.show()
         else:
-            self.slave_id_widget.hide()  # Remove slave_id_widget completely since it's now in settings
+            self.slave_id_widget.hide()
             self.target_slaves_widget.hide()
     
     def update_register_management_state(self):
@@ -131,6 +156,8 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.reg_address.setEnabled(enable)
             self.reg_type.setEnabled(enable)
             self.reg_tag_name.setEnabled(enable)
+            self.reg_operation.setEnabled(enable)
+            self.reg_mode.setEnabled(enable and self.reg_operation.currentText() == 'Write')
             self.quick_add_5_btn.setEnabled(enable)
             self.quick_add_10_btn.setEnabled(enable)
             self.remove_all_btn.setEnabled(enable)
@@ -141,6 +168,8 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.reg_address.setEnabled(True)
             self.reg_type.setEnabled(True)
             self.reg_tag_name.setEnabled(True)
+            self.reg_operation.setEnabled(False)  # N/A for slave
+            self.reg_mode.setEnabled(False)       # N/A for slave
             self.quick_add_5_btn.setEnabled(True)
             self.quick_add_10_btn.setEnabled(True)
             self.remove_all_btn.setEnabled(True)
@@ -278,6 +307,14 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             'type_name': self.reg_type.currentText()
         }
         
+        # Add operation and mode for Master mode
+        if self.config['is_master']:
+            register['operation'] = self.reg_operation.currentText()
+            register['mode'] = self.reg_mode.currentText() if self.reg_operation.currentText() == 'Write' else 'N/A'
+        else:
+            register['operation'] = 'N/A'  # Slave doesn't have operation concept
+            register['mode'] = 'N/A'
+        
         if self.config['is_master'] and self.current_selected_slave is not None:
             if 'slave_registers' not in self.config:
                 self.config['slave_registers'] = {}
@@ -310,15 +347,77 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
         current_registers = self.get_current_register_list()
         self.register_table.setRowCount(len(current_registers))
         
+        # Hide/Show Operation and Mode columns based on device type
+        if self.config['is_master']:
+            self.register_table.setColumnHidden(4, False)  # Show Operation
+            self.register_table.setColumnHidden(5, False)  # Show Mode
+        else:
+            self.register_table.setColumnHidden(4, True)   # Hide Operation
+            self.register_table.setColumnHidden(5, True)   # Hide Mode
+        
         for i, reg in enumerate(current_registers):
             self.register_table.setItem(i, 0, QTableWidgetItem(reg.get('tag_name', 'N/A')))
             self.register_table.setItem(i, 1, QTableWidgetItem(str(reg['internal_address'])))
             self.register_table.setItem(i, 2, QTableWidgetItem(str(reg['mapped_address'])))
             self.register_table.setItem(i, 3, QTableWidgetItem(reg['type_name']))
             
+            # Operation column - dropdown for Master mode
+            if self.config['is_master']:
+                operation_combo = QComboBox()
+                operation_combo.addItems(['Read', 'Write'])
+                operation_combo.setCurrentText(reg.get('operation', 'Read'))
+                operation_combo.currentTextChanged.connect(lambda text, row=i: self.on_table_operation_changed(row, text))
+                self.register_table.setCellWidget(i, 4, operation_combo)
+            else:
+                self.register_table.setItem(i, 4, QTableWidgetItem('N/A'))
+            
+            # Mode column - dropdown for Master mode, only enabled for Write
+            if self.config['is_master']:
+                mode_combo = QComboBox()
+                mode_combo.addItems(['One-time', 'Cyclic'])
+                current_mode = reg.get('mode', 'One-time')
+                if current_mode != 'N/A':
+                    mode_combo.setCurrentText(current_mode)
+                mode_combo.setEnabled(reg.get('operation', 'Read') == 'Write')
+                mode_combo.currentTextChanged.connect(lambda text, row=i: self.on_table_mode_changed(row, text))
+                self.register_table.setCellWidget(i, 5, mode_combo)
+            else:
+                self.register_table.setItem(i, 5, QTableWidgetItem('N/A'))
+            
             remove_btn = QPushButton('Remove')
             remove_btn.clicked.connect(lambda checked, idx=i: self.remove_register(idx))
-            self.register_table.setCellWidget(i, 4, remove_btn)
+            self.register_table.setCellWidget(i, 6, remove_btn)
+    
+    def on_table_operation_changed(self, row, operation):
+        """Handle operation change in table"""
+        current_registers = self.get_current_register_list()
+        if 0 <= row < len(current_registers):
+            current_registers[row]['operation'] = operation
+            
+            # Update mode based on operation
+            if operation == 'Read':
+                current_registers[row]['mode'] = 'N/A'
+                # Disable mode combo for this row
+                mode_combo = self.register_table.cellWidget(row, 5)
+                if isinstance(mode_combo, QComboBox):
+                    mode_combo.setEnabled(False)
+                    mode_combo.setCurrentText('One-time')  # Reset to default
+            else:  # Write
+                if current_registers[row]['mode'] == 'N/A':
+                    current_registers[row]['mode'] = 'One-time'
+                # Enable mode combo for this row
+                mode_combo = self.register_table.cellWidget(row, 5)
+                if isinstance(mode_combo, QComboBox):
+                    mode_combo.setEnabled(True)
+            
+            self.statusbar.showMessage(f'Updated {current_registers[row]["tag_name"]} operation to {operation}')
+    
+    def on_table_mode_changed(self, row, mode):
+        """Handle mode change in table"""
+        current_registers = self.get_current_register_list()
+        if 0 <= row < len(current_registers):
+            current_registers[row]['mode'] = mode
+            self.statusbar.showMessage(f'Updated {current_registers[row]["tag_name"]} mode to {mode}')
     
     def remove_register(self, index):
         current_registers = self.get_current_register_list()
@@ -371,7 +470,6 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
                         for reg in current_registers)
             
             if not exists:
-                # Use default tag name generation
                 tag_name = self.generate_default_tag_name(internal_addr, reg_type)
                 
                 register = {
@@ -382,6 +480,14 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
                     'modbus_type': [0, 1, 3, 4][reg_type],
                     'type_name': self.reg_type.currentText()
                 }
+                
+                # Add operation and mode for Master mode
+                if self.config['is_master']:
+                    register['operation'] = self.reg_operation.currentText()
+                    register['mode'] = self.reg_mode.currentText() if self.reg_operation.currentText() == 'Write' else 'N/A'
+                else:
+                    register['operation'] = 'N/A'
+                    register['mode'] = 'N/A'
                 
                 if self.config['is_master'] and self.current_selected_slave is not None:
                     if 'slave_registers' not in self.config:
@@ -495,6 +601,7 @@ class ModbusConfigTool(QMainWindow, Ui_MainWindow):
             self.config['settings'] = self.get_default_settings()
         
         self.update_slave_config_display()
+        self.update_operation_mode_visibility()
         self.update_register_table()
         self.optimize_ranges()
     
@@ -569,7 +676,7 @@ class SettingsDialog(QDialog):
         self.init_ui()
     
     def init_ui(self):
-        self.setWindowTitle('Modbus Configuration Settings')
+        self.setWindowTitle('Enhanced Modbus Configuration Settings v2.0')
         self.setMinimumSize(700, 500)
         
         layout = QVBoxLayout(self)
@@ -594,9 +701,13 @@ class SettingsDialog(QDialog):
         master_tab = QWidget()
         master_layout = QVBoxLayout(master_tab)
         
-        master_label = QLabel('Master Settings:')
+        master_label = QLabel('Master Settings (Enhanced with Frame/Cycle timing):')
         master_label.setStyleSheet("font-weight: bold; margin: 5px;")
         master_layout.addWidget(master_label)
+        
+        timing_info = QLabel('â€¢ Frame Interval: Time between individual frames in one polling cycle\nâ€¢ Cycle Interval: Time between complete polling cycles')
+        timing_info.setStyleSheet("color: blue; font-style: italic; margin: 5px;")
+        master_layout.addWidget(timing_info)
         
         self.master_table = self.create_settings_table(self.settings.get('master', []))
         master_layout.addWidget(self.master_table)
@@ -690,7 +801,7 @@ class SettingsDialog(QDialog):
             spinbox.setValue(int(current_value))
             return spinbox
             
-        elif var_name in ['MODBUS_TIMEOUT_MS', 'MODBUS_POLL_INTERVAL_MS', 'MODBUS_RESPONSE_DELAY_MS']:
+        elif var_name in ['MODBUS_TIMEOUT_MS', 'MODBUS_FRAME_INTERVAL_MS', 'MODBUS_CYCLE_INTERVAL_MS', 'MODBUS_RESPONSE_DELAY_MS']:
             spinbox = QSpinBox()
             spinbox.setRange(0, 60000)  # 0 to 60 seconds
             spinbox.setValue(int(current_value))
@@ -778,4 +889,3 @@ if __name__ == '__main__':
     window = ModbusConfigTool()
     window.show()
     sys.exit(app.exec_())
-    
